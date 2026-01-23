@@ -125,7 +125,7 @@ if uploaded_file is not None:
             mutual.add((b, a))
 
     # === 10. Tegn sociogram ===
-    fig, ax = plt.subplots(figsize=(20, 20))
+    fig, ax = plt.subplots(figsize=(15, 15))
     ax.set_xlim(-radius - 2, radius + 2)
     ax.set_ylim(-radius - 2, radius + 2)
     ax.set_aspect("equal")
@@ -141,7 +141,7 @@ if uploaded_file is not None:
     # Cirkler
     for elev, data in nodes.items():
         x, y = data["pos"]
-        r = 0.3 + data["contacts"] * 0.05
+        r = 0.35
         circle = Circle((x, y), r, color=farve(data["contacts"]), ec="black", zorder=2)
         ax.add_patch(circle)
         ax.text(x, y, elev, ha="center", va="center", fontsize=10, zorder=3)
