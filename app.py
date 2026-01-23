@@ -46,8 +46,6 @@ def layout_grid(names):
 
 
 def layout_force(names, edges, iterations=300, step=0.01):
-    # Simpel force-layout (repulsion + attraction)
-    n = len(names)
     pos = {name: np.random.randn(2) for name in names}
 
     for _ in range(iterations):
@@ -62,19 +60,40 @@ def layout_force(names, edges, iterations=300, step=0.01):
                 dist = np.linalg.norm(diff) + 0.01
                 forces[a] += diff / dist**2
 
-        # Attraction (edges)
+        # Attraction
         for a, b in edges:
             if a in pos and b in pos:
                 diff = pos[b] - pos[a]
-                dist = np.linalg.norm(diff) + 0.01
                 forces[a] += diff * 0.01
                 forces[b] -= diff * 0.01
 
-        # Apply forces
+        # Apply
         for name in names:
             pos[name] += forces[name] * step
 
-    return pos
+    return {name: (float(pos[name][0]), float(pos[name][1])) for name in names}
+
+
+# === Normalisering af koordinater ===
+def normalize_positions(positions, target_size=10):
+    xs = [p[0] for p in positions.values()]
+    ys = [p[1] for p in positions.values()]
+
+    min_x, max_x = min(xs), max(xs)
+    min_y, max_y = min(ys), max(ys)
+
+    width = max_x - min_x
+    height = max_y - min_y
+
+    scale = target_size / max(width, height, 1)
+
+    normalized = {}
+    for name, (x, y) in positions.items():
+        nx = (x - min_x) * scale
+        ny = (y - min_y) * scale
+        normalized[name] = (nx, ny)
+
+    return normalized
 
 
 # === Streamlit UI ===
@@ -92,16 +111,13 @@ uploaded_file = st.file_uploader("Vælg fil", type=["csv", "xlsx", "xls"])
 
 if uploaded_file is not None:
 
-    # === 1. Find filtype ===
     ext = os.path.splitext(uploaded_file.name)[1].lower()
 
-    # === 2. Læs rå data uden header ===
     if ext in [".xlsx", ".xls"]:
         df_raw = pd.read_excel(uploaded_file, header=None)
     else:
         df_raw = read_csv_smart(uploaded_file, header=None)
 
-    # === 3. Tjek om første række er header ===
     first_cell = str(df_raw.iloc[0, 0]).strip().lower()
 
     if first_cell == "elev":
@@ -116,7 +132,6 @@ if uploaded_file is not None:
         df.columns = ["elev"] + [str(i) for i in range(1, num_cols)]
         df.columns = df.columns.str.lower()
 
-    # === 4. Find valgkolonner ===
     all_cols = list(df.columns)
     if "elev" not in all_cols:
         st.error("Kunne ikke finde en kolonne med elevnavne.")
@@ -129,7 +144,6 @@ if uploaded_file is not None:
         st.error("Filen skal have 3, 4 eller 5 kolonner (elev + 2-4 valg).")
         st.stop()
 
-    # === 5. Tjek for manglende valg ===
     missing = []
     for _, row in df.iterrows():
         elev = row["elev"]
@@ -139,11 +153,9 @@ if uploaded_file is not None:
                 break
 
     if missing:
-        names = ", ".join(sorted(set(missing)))
-        st.error(f"Følgende elever peger ikke på {num_choices} andre: {names}")
+        st.error(f"Følgende elever peger ikke på {num_choices} andre: {', '.join(sorted(set(missing)))}")
         st.stop()
 
-    # === 6. Tjek for selv-reference ===
     self_ref = []
     for _, row in df.iterrows():
         elev_norm = str(row["elev"]).strip().lower()
@@ -153,15 +165,12 @@ if uploaded_file is not None:
                 break
 
     if self_ref:
-        names = ", ".join(sorted(set(self_ref)))
-        st.error(f"Følgende elever peger på sig selv: {names}")
+        st.error(f"Følgende elever peger på sig selv: {', '.join(sorted(set(self_ref)))}")
         st.stop()
 
-    # === 7. Beregn kontakter ===
     all_names = pd.concat([df["elev"]] + [df[c] for c in choice_cols])
     contacts_count = all_names.value_counts().to_dict()
 
-    # === 8. Layout ===
     names = list(contacts_count.keys())
 
     if layout_valg == "Cirkel-layout":
@@ -172,7 +181,8 @@ if uploaded_file is not None:
         edges_for_force = [(row["elev"], row[c]) for _, row in df.iterrows() for c in choice_cols]
         positions = layout_force(names, edges_for_force)
 
-    # === 9. Edges ===
+    positions = normalize_positions(positions, target_size=10)
+
     edges = []
     for _, row in df.iterrows():
         elev = row["elev"]
@@ -185,10 +195,8 @@ if uploaded_file is not None:
             mutual.add((a, b))
             mutual.add((b, a))
 
-    # === 10. Tegn sociogram ===
     fig, ax = plt.subplots(figsize=(10, 10))
 
-    # Fast radius
     R = 0.35
 
     def farve(n):
@@ -199,14 +207,12 @@ if uploaded_file is not None:
         else:
             return "green"
 
-    # Cirkler
     for elev in names:
         x, y = positions[elev]
         circle = Circle((x, y), R, color=farve(contacts_count[elev]), ec="black", zorder=2)
         ax.add_patch(circle)
         ax.text(x, y, elev, ha="center", va="center", fontsize=10, zorder=3)
 
-    # Pile
     for start, end in edges:
         if start not in positions or end not in positions:
             continue
@@ -242,19 +248,18 @@ if uploaded_file is not None:
         )
         ax.add_patch(arrow)
 
-    # === 11. Titel ===
-    dato = datetime.now().strftime("%d-%m-%Y")
+    ax.set_aspect("equal", adjustable="box")
+    plt.axis("off")
 
+    dato = datetime.now().strftime("%d-%m-%Y")
     titel = f"Sociogram for {klasse_navn}" if klasse_navn else "Sociogram"
     undertitel = f"Alle peger på {num_choices} andre"
     dato_tekst = f"Genereret den {dato}"
 
     plt.title(f"{titel}\n{undertitel}\n{dato_tekst}", fontsize=14)
-    plt.axis("off")
 
     st.pyplot(fig)
 
-    # === 12. PDF-download ===
     pdf_buffer = BytesIO()
     fig.savefig(pdf_buffer, format="pdf")
     pdf_buffer.seek(0)
