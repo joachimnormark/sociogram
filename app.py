@@ -27,7 +27,7 @@ def read_csv_smart(file, header):
 
 def layout_circle(names):
     n = len(names)
-    radius = 5
+    radius = 7  # <<< DU ØNSKEDE r = 7
     positions = {}
     for i, name in enumerate(names):
         angle = 2 * math.pi * i / n
@@ -48,7 +48,7 @@ def layout_grid(names):
     return positions
 
 
-# === Normalisering af koordinater ===
+# === Normalisering af grid-layout ===
 def normalize_positions(positions, target_size=10):
     xs = [p[0] for p in positions.values()]
     ys = [p[1] for p in positions.values()]
@@ -147,13 +147,14 @@ if uploaded_file is not None:
 
     names = list(contacts_count.keys())
 
+    # === Layout ===
     if layout_valg == "Cirkel-layout":
         positions = layout_circle(names)
     else:
         positions = layout_grid(names)
+        positions = normalize_positions(positions, target_size=10)
 
-    positions = normalize_positions(positions, target_size=10)
-
+    # === Edges ===
     edges = []
     for _, row in df.iterrows():
         elev = row["elev"]
@@ -166,9 +167,10 @@ if uploaded_file is not None:
             mutual.add((a, b))
             mutual.add((b, a))
 
+    # === Tegn sociogram ===
     fig, ax = plt.subplots(figsize=(10, 10))
 
-    R = 0.35
+    R = 0.35  # fast cirkelstørrelse
 
     def farve(n):
         if n < 3:
@@ -178,12 +180,14 @@ if uploaded_file is not None:
         else:
             return "green"
 
+    # Cirkler
     for elev in names:
         x, y = positions[elev]
         circle = Circle((x, y), R, color=farve(contacts_count[elev]), ec="black", zorder=2)
         ax.add_patch(circle)
         ax.text(x, y, elev, ha="center", va="center", fontsize=10, zorder=3)
 
+    # Pile
     for start, end in edges:
         if start not in positions or end not in positions:
             continue
