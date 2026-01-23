@@ -27,7 +27,7 @@ def read_csv_smart(file, header):
 
 def layout_circle(names):
     n = len(names)
-    radius = 7  # <<< DU ØNSKEDE r = 7
+    radius = 5  # <<< DU ØNSKEDE r = 7
     positions = {}
     for i, name in enumerate(names):
         angle = 2 * math.pi * i / n
