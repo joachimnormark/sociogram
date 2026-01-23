@@ -125,7 +125,7 @@ if uploaded_file is not None:
             mutual.add((b, a))
 
     # === 10. Tegn sociogram ===
-    fig, ax = plt.subplots(figsize=(10, 10))
+    fig, ax = plt.subplots(figsize=(15, 15))
     ax.set_xlim(-radius - 2, radius + 2)
     ax.set_ylim(-radius - 2, radius + 2)
     ax.set_aspect("equal")
