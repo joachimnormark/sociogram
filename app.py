@@ -5,55 +5,48 @@ from matplotlib.patches import Circle, FancyArrowPatch
 import math
 from io import BytesIO
 
-st.title("Sociogram-generator")
 
+def read_csv_try(file, header):
+    # Prøv flere separatorer i rækkefølge
+    for sep in [";", ",", "\t"]:
+        file.seek(0)
+        try:
+            return pd.read_csv(file, sep=sep, header=header)
+        except Exception:
+            continue
+    raise ValueError("Kunne ikke læse CSV-filen. Prøv at gemme den igen som CSV i Excel.")
+
+
+st.title("Sociogram-generator")
 st.write("Upload en CSV-fil med elevnavne og deres valg.")
 
 uploaded_file = st.file_uploader("Vælg CSV-fil", type=["csv"])
 
 if uploaded_file is not None:
+    # 1) Læs rå data uden antagelse om header
+    df_raw = read_csv_try(uploaded_file, header=None)
 
-    # === 1. Læs CSV med automatisk separator ===
-def smart_read_csv(file):
-    # Prøv semikolon
-    try:
-        return pd.read_csv(file, sep=";")
-    except Exception:
-        file.seek(0)
-
-    # Prøv komma
-    try:
-        return pd.read_csv(file, sep=",")
-    except Exception:
-        file.seek(0)
-
-    # Prøv tabulator
-    try:
-        return pd.read_csv(file, sep="\t")
-    except Exception:
-        file.seek(0)
-
-    # Hvis alt fejler
-    raise ValueError("Kunne ikke læse CSV-filen. Prøv at gemme den igen som CSV i Excel.")
-
-
-
-    # === 2. Tjek om første række er kolonneoverskrifter ===
-    first_cell = str(df.iloc[0, 0]).strip().lower()
+    # 2) Tjek om første række er kolonneoverskrifter
+    first_cell = str(df_raw.iloc[0, 0]).strip().lower()
 
     if first_cell in {"elev"}:
-        # Første række ER kolonneoverskrifter
-        df = pd.read_csv(uploaded_file, sep=None, engine="python")
+        # Første række ER header
+        df = read_csv_try(uploaded_file, header=0)
         df.columns = df.columns.str.strip().str.lower()
     else:
         # Første række er data → lav egne kolonnenavne
+        df = df_raw.copy()
         num_cols = df.shape[1]
         cols = ["elev"] + [str(i) for i in range(1, num_cols)]
         df.columns = cols
         df.columns = df.columns.str.lower()
 
-    # === 3. Antal valg (kan være 2, 3 eller 4) ===
+    # 3) Find valg-kolonner (alt undtagen 'elev')
     all_columns = list(df.columns)
+    if "elev" not in all_columns:
+        st.error("Kunne ikke finde en kolonne med elevnavne (forventede 'Elev' eller første kolonne som elevnavne).")
+        st.stop()
+
     choice_columns = [c for c in all_columns if c != "elev"]
     num_choices = len(choice_columns)
 
@@ -61,7 +54,7 @@ def smart_read_csv(file):
         st.error("Filen skal have 3, 4 eller 5 kolonner (elev + 2-4 valg).")
         st.stop()
 
-    # === 4. Tjek for manglende valg ===
+    # 4) Tjek for manglende valg
     missing = []
     for _, row in df.iterrows():
         elev = row["elev"]
@@ -72,28 +65,28 @@ def smart_read_csv(file):
 
     if missing:
         names = ", ".join(sorted(set(missing)))
-        st.error(f"Følgende elever peger ikke på {num_choices} andre: {names}")
+        st.error(f"Følgende elever peger ikke på {num_choices} andre, og derfor kan sociogrammet ikke laves: {names}")
         st.stop()
 
-    # === 5. Tjek for selv-reference ===
+    # 5) Tjek for selv-reference
     self_ref = []
     for _, row in df.iterrows():
-        elev = str(row["elev"]).strip().lower()
+        elev_norm = str(row["elev"]).strip().lower()
         for c in choice_columns:
-            if elev == str(row[c]).strip().lower():
+            if elev_norm == str(row[c]).strip().lower():
                 self_ref.append(row["elev"])
                 break
 
     if self_ref:
         names = ", ".join(sorted(set(self_ref)))
-        st.error(f"Følgende elever peger på sig selv: {names}")
+        st.error(f"Følgende elever peger på sig selv, og derfor kan sociogrammet ikke laves: {names}")
         st.stop()
 
-    # === 6. Beregn kontakter ===
+    # 6) Beregn kontakter
     all_names = pd.concat([df["elev"]] + [df[c] for c in choice_columns])
     contacts_count = all_names.value_counts().to_dict()
 
-    # === 7. Layout i cirkel ===
+    # 7) Layout i cirkel
     nodes = {}
     n = len(contacts_count)
     radius_circle = 5
@@ -104,7 +97,7 @@ def smart_read_csv(file):
         y = radius_circle * math.sin(angle)
         nodes[elev] = {"pos": (x, y), "contacts": contacts_count[elev]}
 
-    # === 8. Edges ===
+    # 8) Edges
     edges = []
     for _, row in df.iterrows():
         elev = row["elev"]
@@ -118,7 +111,7 @@ def smart_read_csv(file):
             mutual_edges.add((a, b))
             mutual_edges.add((b, a))
 
-    # === 9. Tegn sociogram ===
+    # 9) Tegn sociogram
     fig, ax = plt.subplots(figsize=(10, 10))
     ax.set_xlim(-radius_circle - 2, radius_circle + 2)
     ax.set_ylim(-radius_circle - 2, radius_circle + 2)
@@ -182,7 +175,7 @@ def smart_read_csv(file):
         )
         ax.add_patch(arrow)
 
-    # === 10. Titel ===
+    # 10) Titel
     plt.title(f"Sociogram – alle peger på {num_choices} andre")
 
     legend_elements = [
