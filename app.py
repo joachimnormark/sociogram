@@ -14,7 +14,28 @@ uploaded_file = st.file_uploader("Vælg CSV-fil", type=["csv"])
 if uploaded_file is not None:
 
     # === 1. Læs CSV med automatisk separator ===
-    df = pd.read_csv(uploaded_file, sep=None, engine="python", header=None)
+    def smart_read_csv(file):
+    # Prøv semikolon
+    try:
+        return pd.read_csv(file, sep=";")
+    except Exception:
+        file.seek(0)
+
+    # Prøv komma
+    try:
+        return pd.read_csv(file, sep=",")
+    except Exception:
+        file.seek(0)
+
+    # Prøv tabulator
+    try:
+        return pd.read_csv(file, sep="\t")
+    except Exception:
+        file.seek(0)
+
+    # Hvis alt fejler
+    raise ValueError("Kunne ikke læse CSV-filen. Prøv at gemme den igen som CSV i Excel.")
+
 
     # === 2. Tjek om første række er kolonneoverskrifter ===
     first_cell = str(df.iloc[0, 0]).strip().lower()
