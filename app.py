@@ -6,7 +6,10 @@ import math
 from io import BytesIO
 import os
 from datetime import datetime
-import numpy as np
+from PIL import Image
+
+# Fjern PIL's sikkerhedsgrænse
+Image.MAX_IMAGE_PIXELS = None
 
 
 # === Funktion til at læse CSV med flere mulige separatorer ===
@@ -45,35 +48,6 @@ def layout_grid(names):
     return positions
 
 
-def layout_force(names, edges, iterations=300, step=0.01):
-    pos = {name: np.random.randn(2) for name in names}
-
-    for _ in range(iterations):
-        forces = {name: np.zeros(2) for name in names}
-
-        # Repulsion
-        for a in names:
-            for b in names:
-                if a == b:
-                    continue
-                diff = pos[a] - pos[b]
-                dist = np.linalg.norm(diff) + 0.01
-                forces[a] += diff / dist**2
-
-        # Attraction
-        for a, b in edges:
-            if a in pos and b in pos:
-                diff = pos[b] - pos[a]
-                forces[a] += diff * 0.01
-                forces[b] -= diff * 0.01
-
-        # Apply
-        for name in names:
-            pos[name] += forces[name] * step
-
-    return {name: (float(pos[name][0]), float(pos[name][1])) for name in names}
-
-
 # === Normalisering af koordinater ===
 def normalize_positions(positions, target_size=10):
     xs = [p[0] for p in positions.values()]
@@ -104,7 +78,7 @@ klasse_navn = st.text_input("Indtast klassens navn (fx 7.A):")
 
 layout_valg = st.selectbox(
     "Vælg layout",
-    ["Cirkel-layout", "Grid-layout", "Force-layout"]
+    ["Cirkel-layout", "Grid-layout"]
 )
 
 uploaded_file = st.file_uploader("Vælg fil", type=["csv", "xlsx", "xls"])
@@ -175,11 +149,8 @@ if uploaded_file is not None:
 
     if layout_valg == "Cirkel-layout":
         positions = layout_circle(names)
-    elif layout_valg == "Grid-layout":
-        positions = layout_grid(names)
     else:
-        edges_for_force = [(row["elev"], row[c]) for _, row in df.iterrows() for c in choice_cols]
-        positions = layout_force(names, edges_for_force)
+        positions = layout_grid(names)
 
     positions = normalize_positions(positions, target_size=10)
 
@@ -258,18 +229,17 @@ if uploaded_file is not None:
 
     plt.title(f"{titel}\n{undertitel}\n{dato_tekst}", fontsize=14)
 
-    # Gem som PNG med kontrolleret dpi (for at undgå DecompressionBombError)
+    # Gem som PNG med kontrolleret størrelse
     png_buffer = BytesIO()
     fig.savefig(png_buffer, format="png", dpi=80)
     png_buffer.seek(0)
 
     st.image(png_buffer)
 
-    # PDF-download som før
+    # PDF-download
     pdf_buffer = BytesIO()
     fig.savefig(pdf_buffer, format="pdf")
     pdf_buffer.seek(0)
-
 
     st.download_button(
         label="Download sociogram som PDF",
