@@ -14,7 +14,7 @@ uploaded_file = st.file_uploader("Vælg CSV-fil", type=["csv"])
 if uploaded_file is not None:
 
     # === 1. Læs CSV med automatisk separator ===
-    def smart_read_csv(file):
+def smart_read_csv(file):
     # Prøv semikolon
     try:
         return pd.read_csv(file, sep=";")
@@ -35,6 +35,7 @@ if uploaded_file is not None:
 
     # Hvis alt fejler
     raise ValueError("Kunne ikke læse CSV-filen. Prøv at gemme den igen som CSV i Excel.")
+
 
 
     # === 2. Tjek om første række er kolonneoverskrifter ===
