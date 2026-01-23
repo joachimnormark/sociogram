@@ -6,6 +6,7 @@ import math
 from io import BytesIO
 import os
 from datetime import datetime
+import numpy as np
 
 
 # === Funktion til at læse CSV med flere mulige separatorer ===
@@ -19,10 +20,73 @@ def read_csv_smart(file, header):
     raise ValueError("Kunne ikke læse CSV-filen. Prøv at gemme den igen som CSV i Excel.")
 
 
+# === Layout-funktioner ===
+
+def layout_circle(names):
+    n = len(names)
+    radius = 5
+    positions = {}
+    for i, name in enumerate(names):
+        angle = 2 * math.pi * i / n
+        positions[name] = (radius * math.cos(angle), radius * math.sin(angle))
+    return positions
+
+
+def layout_grid(names):
+    n = len(names)
+    cols = math.ceil(math.sqrt(n))
+    rows = math.ceil(n / cols)
+    positions = {}
+    spacing = 3
+    for idx, name in enumerate(names):
+        r = idx // cols
+        c = idx % cols
+        positions[name] = (c * spacing, -r * spacing)
+    return positions
+
+
+def layout_force(names, edges, iterations=300, step=0.01):
+    # Simpel force-layout (repulsion + attraction)
+    n = len(names)
+    pos = {name: np.random.randn(2) for name in names}
+
+    for _ in range(iterations):
+        forces = {name: np.zeros(2) for name in names}
+
+        # Repulsion
+        for a in names:
+            for b in names:
+                if a == b:
+                    continue
+                diff = pos[a] - pos[b]
+                dist = np.linalg.norm(diff) + 0.01
+                forces[a] += diff / dist**2
+
+        # Attraction (edges)
+        for a, b in edges:
+            if a in pos and b in pos:
+                diff = pos[b] - pos[a]
+                dist = np.linalg.norm(diff) + 0.01
+                forces[a] += diff * 0.01
+                forces[b] -= diff * 0.01
+
+        # Apply forces
+        for name in names:
+            pos[name] += forces[name] * step
+
+    return pos
+
+
+# === Streamlit UI ===
+
 st.title("Sociogram-generator")
 
-st.write("Upload en CSV- eller Excel-fil med elevnavne og deres valg.")
 klasse_navn = st.text_input("Indtast klassens navn (fx 7.A):")
+
+layout_valg = st.selectbox(
+    "Vælg layout",
+    ["Cirkel-layout", "Grid-layout", "Force-layout"]
+)
 
 uploaded_file = st.file_uploader("Vælg fil", type=["csv", "xlsx", "xls"])
 
@@ -41,14 +105,12 @@ if uploaded_file is not None:
     first_cell = str(df_raw.iloc[0, 0]).strip().lower()
 
     if first_cell == "elev":
-        # Læs igen med header
         if ext in [".xlsx", ".xls"]:
             df = pd.read_excel(uploaded_file, header=0)
         else:
             df = read_csv_smart(uploaded_file, header=0)
         df.columns = df.columns.str.strip().str.lower()
     else:
-        # Ingen header → lav egne kolonnenavne
         df = df_raw.copy()
         num_cols = df.shape[1]
         df.columns = ["elev"] + [str(i) for i in range(1, num_cols)]
@@ -99,16 +161,16 @@ if uploaded_file is not None:
     all_names = pd.concat([df["elev"]] + [df[c] for c in choice_cols])
     contacts_count = all_names.value_counts().to_dict()
 
-    # === 8. Layout i cirkel ===
-    nodes = {}
-    n = len(contacts_count)
-    radius = 5
+    # === 8. Layout ===
+    names = list(contacts_count.keys())
 
-    for i, elev in enumerate(contacts_count.keys()):
-        angle = 2 * math.pi * i / n
-        x = radius * math.cos(angle)
-        y = radius * math.sin(angle)
-        nodes[elev] = {"pos": (x, y), "contacts": contacts_count[elev]}
+    if layout_valg == "Cirkel-layout":
+        positions = layout_circle(names)
+    elif layout_valg == "Grid-layout":
+        positions = layout_grid(names)
+    else:
+        edges_for_force = [(row["elev"], row[c]) for _, row in df.iterrows() for c in choice_cols]
+        positions = layout_force(names, edges_for_force)
 
     # === 9. Edges ===
     edges = []
@@ -117,7 +179,6 @@ if uploaded_file is not None:
         for c in choice_cols:
             edges.append((elev, row[c]))
 
-    # Gensidige relationer
     mutual = set()
     for a, b in edges:
         if (b, a) in edges:
@@ -125,10 +186,10 @@ if uploaded_file is not None:
             mutual.add((b, a))
 
     # === 10. Tegn sociogram ===
-    fig, ax = plt.subplots(figsize=(15, 15))
-    ax.set_xlim(-radius - 2, radius + 2)
-    ax.set_ylim(-radius - 2, radius + 2)
-    ax.set_aspect("equal")
+    fig, ax = plt.subplots(figsize=(10, 10))
+
+    # Fast radius
+    R = 0.35
 
     def farve(n):
         if n < 3:
@@ -139,32 +200,29 @@ if uploaded_file is not None:
             return "green"
 
     # Cirkler
-    for elev, data in nodes.items():
-        x, y = data["pos"]
-        r = 0.35
-        circle = Circle((x, y), r, color=farve(data["contacts"]), ec="black", zorder=2)
+    for elev in names:
+        x, y = positions[elev]
+        circle = Circle((x, y), R, color=farve(contacts_count[elev]), ec="black", zorder=2)
         ax.add_patch(circle)
         ax.text(x, y, elev, ha="center", va="center", fontsize=10, zorder=3)
 
     # Pile
     for start, end in edges:
-        if start not in nodes or end not in nodes:
+        if start not in positions or end not in positions:
             continue
 
-        x1, y1 = nodes[start]["pos"]
-        x2, y2 = nodes[end]["pos"]
-        r1 = 0.3 + nodes[start]["contacts"] * 0.05
-        r2 = 0.3 + nodes[end]["contacts"] * 0.05
+        x1, y1 = positions[start]
+        x2, y2 = positions[end]
 
         dx, dy = x2 - x1, y2 - y1
         dist = math.sqrt(dx**2 + dy**2)
         if dist == 0:
             continue
 
-        new_x1 = x1 + dx * (r1 / dist)
-        new_y1 = y1 + dy * (r1 / dist)
-        new_x2 = x2 - dx * (r2 / dist)
-        new_y2 = y2 - dy * (r2 / dist)
+        new_x1 = x1 + dx * (R / dist)
+        new_y1 = y1 + dy * (R / dist)
+        new_x2 = x2 - dx * (R / dist)
+        new_y2 = y2 - dy * (R / dist)
 
         if (start, end) in mutual:
             color = "green"
@@ -184,7 +242,7 @@ if uploaded_file is not None:
         )
         ax.add_patch(arrow)
 
-    # === 11. Titel og metadata ===
+    # === 11. Titel ===
     dato = datetime.now().strftime("%d-%m-%Y")
 
     titel = f"Sociogram for {klasse_navn}" if klasse_navn else "Sociogram"
@@ -192,10 +250,8 @@ if uploaded_file is not None:
     dato_tekst = f"Genereret den {dato}"
 
     plt.title(f"{titel}\n{undertitel}\n{dato_tekst}", fontsize=14)
-
     plt.axis("off")
 
-    # Vis i Streamlit
     st.pyplot(fig)
 
     # === 12. PDF-download ===
