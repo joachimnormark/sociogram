@@ -258,11 +258,18 @@ if uploaded_file is not None:
 
     plt.title(f"{titel}\n{undertitel}\n{dato_tekst}", fontsize=14)
 
-    st.pyplot(fig)
+    # Gem som PNG med kontrolleret dpi (for at undgå DecompressionBombError)
+    png_buffer = BytesIO()
+    fig.savefig(png_buffer, format="png", dpi=80)
+    png_buffer.seek(0)
 
+    st.image(png_buffer)
+
+    # PDF-download som før
     pdf_buffer = BytesIO()
     fig.savefig(pdf_buffer, format="pdf")
     pdf_buffer.seek(0)
+
 
     st.download_button(
         label="Download sociogram som PDF",
