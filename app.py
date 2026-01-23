@@ -13,8 +13,8 @@ uploaded_file = st.file_uploader("Vælg CSV-fil", type=["csv"])
 
 if uploaded_file is not None:
     # Læs data
-    df = pd.read_csv(uploaded_file)
-    df.columns = df.columns.str.strip()
+    df = pd.read_csv(uploaded_file, sep=None, engine="python")
+    df.columns = df.columns.str.strip().str.lower()
 
     # Simpel tjek af kolonner
     required_cols = {"elev", "1", "2", "3"}
