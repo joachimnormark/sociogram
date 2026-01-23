@@ -7,83 +7,101 @@ from io import BytesIO
 
 st.title("Sociogram-generator")
 
-st.write("Upload en CSV-fil med kolonnerne: **Elev, 1, 2, 3**")
+st.write("Upload en CSV-fil med elevnavne og deres valg.")
 
 uploaded_file = st.file_uploader("Vælg CSV-fil", type=["csv"])
 
 if uploaded_file is not None:
-    # Læs data – automatisk separator (komma eller semikolon)
-    df = pd.read_csv(uploaded_file, sep=None, engine="python")
 
-    # Normaliser kolonnenavne
-    df.columns = df.columns.str.strip().str.lower()
+    # === 1. Læs CSV med automatisk separator ===
+    df = pd.read_csv(uploaded_file, sep=None, engine="python", header=None)
 
-    # Krævede kolonner
-    required_cols = {"elev", "1", "2", "3"}
-    if not required_cols.issubset(set(df.columns)):
-        st.error(f"Filen skal indeholde kolonnerne: {required_cols}. Jeg fandt: {list(df.columns)}")
+    # === 2. Tjek om første række er kolonneoverskrifter ===
+    first_cell = str(df.iloc[0, 0]).strip().lower()
+
+    if first_cell in {"elev"}:
+        # Første række ER kolonneoverskrifter
+        df = pd.read_csv(uploaded_file, sep=None, engine="python")
+        df.columns = df.columns.str.strip().str.lower()
+    else:
+        # Første række er data → lav egne kolonnenavne
+        num_cols = df.shape[1]
+        cols = ["elev"] + [str(i) for i in range(1, num_cols)]
+        df.columns = cols
+        df.columns = df.columns.str.lower()
+
+    # === 3. Antal valg (kan være 2, 3 eller 4) ===
+    all_columns = list(df.columns)
+    choice_columns = [c for c in all_columns if c != "elev"]
+    num_choices = len(choice_columns)
+
+    if num_choices < 2 or num_choices > 4:
+        st.error("Filen skal have 3, 4 eller 5 kolonner (elev + 2-4 valg).")
         st.stop()
 
-    # Tjek: alle elever skal pege på 3 andre (ingen manglende værdier i 1, 2, 3)
-    if df[["1", "2", "3"]].isna().any().any():
-        st.error("En elev peger ikke på 3 andre, og derfor kan sociogrammet ikke laves.")
+    # === 4. Tjek for manglende valg ===
+    missing = []
+    for _, row in df.iterrows():
+        elev = row["elev"]
+        for c in choice_columns:
+            if pd.isna(row[c]) or str(row[c]).strip() == "":
+                missing.append(elev)
+                break
+
+    if missing:
+        names = ", ".join(sorted(set(missing)))
+        st.error(f"Følgende elever peger ikke på {num_choices} andre: {names}")
         st.stop()
 
-    # Tjek: ingen elev må pege på sig selv
-    self_reference_found = False
+    # === 5. Tjek for selv-reference ===
+    self_ref = []
     for _, row in df.iterrows():
         elev = str(row["elev"]).strip().lower()
-        valg1 = str(row["1"]).strip().lower()
-        valg2 = str(row["2"]).strip().lower()
-        valg3 = str(row["3"]).strip().lower()
-        if elev in {valg1, valg2, valg3}:
-            self_reference_found = True
-            break
+        for c in choice_columns:
+            if elev == str(row[c]).strip().lower():
+                self_ref.append(row["elev"])
+                break
 
-    if self_reference_found:
-        st.error("En elev peger på sig selv, og derfor kan sociogrammet ikke laves.")
+    if self_ref:
+        names = ", ".join(sorted(set(self_ref)))
+        st.error(f"Følgende elever peger på sig selv: {names}")
         st.stop()
 
-    # === 2. Beregn antal kontakter pr. elev ===
-    all_names = pd.concat([df["elev"], df["1"], df["2"], df["3"]])
+    # === 6. Beregn kontakter ===
+    all_names = pd.concat([df["elev"]] + [df[c] for c in choice_columns])
     contacts_count = all_names.value_counts().to_dict()
 
-    # === 3. Opret positionslayout (cirkel) ===
+    # === 7. Layout i cirkel ===
     nodes = {}
     n = len(contacts_count)
     radius_circle = 5
+
     for i, elev in enumerate(contacts_count.keys()):
         angle = 2 * math.pi * i / n
         x = radius_circle * math.cos(angle)
         y = radius_circle * math.sin(angle)
         nodes[elev] = {"pos": (x, y), "contacts": contacts_count[elev]}
 
-    # === 4. Opret forbindelser (edges) ===
+    # === 8. Edges ===
     edges = []
     for _, row in df.iterrows():
-        elev = str(row["elev"]).strip()
-        valg1 = str(row["1"]).strip()
-        valg2 = str(row["2"]).strip()
-        valg3 = str(row["3"]).strip()
+        elev = row["elev"]
+        for c in choice_columns:
+            edges.append((elev, row[c]))
 
-        edges.append((elev, valg1))
-        edges.append((elev, valg2))
-        edges.append((elev, valg3))
-
-    # Find gensidige relationer (dobbeltpile)
+    # Find gensidige relationer
     mutual_edges = set()
     for a, b in edges:
         if (b, a) in edges:
             mutual_edges.add((a, b))
             mutual_edges.add((b, a))
 
-    # === 5. Tegn diagram ===
+    # === 9. Tegn sociogram ===
     fig, ax = plt.subplots(figsize=(10, 10))
     ax.set_xlim(-radius_circle - 2, radius_circle + 2)
     ax.set_ylim(-radius_circle - 2, radius_circle + 2)
     ax.set_aspect("equal")
 
-    # Funktion til farvekodning
     def get_color(n):
         if n < 3:
             return "red"
@@ -92,7 +110,7 @@ if uploaded_file is not None:
         else:
             return "green"
 
-    # Tegn cirkler for hver elev
+    # Cirkler
     for elev, data in nodes.items():
         x, y = data["pos"]
         r = 0.3 + data["contacts"] * 0.05
@@ -100,7 +118,7 @@ if uploaded_file is not None:
         ax.add_patch(circle)
         ax.text(x, y, elev, ha="center", va="center", fontsize=10, zorder=3)
 
-    # Tegn pile mellem elever
+    # Pile
     for start, end in edges:
         if start not in nodes or end not in nodes:
             continue
@@ -113,8 +131,6 @@ if uploaded_file is not None:
         dx, dy = x2 - x1, y2 - y1
         dist = math.sqrt(dx**2 + dy**2)
 
-        # Her burde dist aldrig være 0 pga. tjekket for selv-reference,
-        # men vi kan være ekstra defensive:
         if dist == 0:
             continue
 
@@ -144,8 +160,9 @@ if uploaded_file is not None:
         )
         ax.add_patch(arrow)
 
-    # === 6. Titel og legend ===
-    plt.title("Sociogram")
+    # === 10. Titel ===
+    plt.title(f"Sociogram – alle peger på {num_choices} andre")
+
     legend_elements = [
         Circle((0, 0), 0.3, color="red", label="Ingen peger på"),
         Circle((0, 0), 0.3, color="orange", label="Nogle peger på (1-3)"),
@@ -154,10 +171,10 @@ if uploaded_file is not None:
     ax.legend(handles=legend_elements, loc="upper right")
     plt.axis("off")
 
-    # Vis figuren i Streamlit
+    # Vis i Streamlit
     st.pyplot(fig)
 
-    # Gem som PDF i hukommelsen
+    # PDF-download
     pdf_buffer = BytesIO()
     fig.savefig(pdf_buffer, format="pdf")
     pdf_buffer.seek(0)
