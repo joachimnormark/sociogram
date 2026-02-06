@@ -150,13 +150,24 @@ if uploaded_file is not None:
         else:
             return "green"
 
-    # Cirkler
+        # === Cirkler ===
     for elev in names:
         x, y = positions[elev]
-        ax.add_patch(Circle((x, y), R, color=farve(contacts_count[elev]), ec="black"))
+
+        # HUL cirkel med farvet kant
+        ax.add_patch(
+            Circle(
+                (x, y),
+                R,
+                fill=False,                                   # ingen fyldfarve
+                edgecolor=farve(contacts_count[elev]),        # farvet outline
+                linewidth=3                                   # tykkere streg
+            )
+        )
+
         ax.text(x, y, elev, ha="center", va="center", fontsize=10)
 
-    # Pile
+    # === Pile ===
     for start, end in edges:
         x1, y1 = positions[start]
         x2, y2 = positions[end]
@@ -174,14 +185,18 @@ if uploaded_file is not None:
         color = "green" if (start, end) in mutual else "black"
         lw = 3 if (start, end) in mutual else 1
 
-        ax.add_patch(FancyArrowPatch((sx, sy), (ex, ey),
-                                     arrowstyle="->",
-                                     mutation_scale=15,
-                                     color=color,
-                                     linewidth=lw))
+        ax.add_patch(
+            FancyArrowPatch(
+                (sx, sy),
+                (ex, ey),
+                arrowstyle="->",
+                mutation_scale=15,
+                color=color,
+                linewidth=lw
+            )
+        )
 
     # === Faste xlim/ylim ===
-
     if layout_valg == "Cirkel-layout":
         ax.set_xlim(-8, 8)
         ax.set_ylim(-8, 8)
@@ -193,6 +208,7 @@ if uploaded_file is not None:
 
     ax.set_aspect("equal")
     plt.axis("off")
+
 
     # Titel
     dato = datetime.now().strftime("%d-%m-%Y")
