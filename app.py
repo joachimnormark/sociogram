@@ -215,9 +215,7 @@ if uploaded_file is not None:
     plt.axis("off")
 
         # === Farveforklaring ===
-    legend_x = 1.05   # lidt udenfor højre kant
-    legend_y = 0.95
-
+        
     legend_items = [
         ("Ingen peger på", "black"),
         ("Få valg (1-2)", "red"),
@@ -225,24 +223,38 @@ if uploaded_file is not None:
         ("Mange valg (6+)", "green"),
     ]
 
+    # Startposition i aksens koordinater (1 = højre, 0 = venstre)
+    base_x = 1.02
+    base_y = 0.95
+    spacing = 0.07  # afstand mellem linjerne
+
     for i, (label, color) in enumerate(legend_items):
-        y = legend_y - i * 0.06
+        y = base_y - i * spacing
+
+        # Lille hul cirkel
         ax.add_patch(
             Circle(
-                (legend_x, y),
-                0.03,
+                (base_x, y),
+                0.02,
                 fill=False,
                 edgecolor=color,
-                linewidth=3
+                linewidth=3,
+                transform=ax.transAxes,   # ⭐ vigtig: relative koordinater
+                clip_on=False
             )
         )
+
+        # Tekst
         ax.text(
-            legend_x + 0.05,
+            base_x + 0.04,
             y,
             label,
             va="center",
-            fontsize=10
+            fontsize=10,
+            transform=ax.transAxes,      # ⭐ samme koordinatsystem
+            clip_on=False
         )
+
 
 
     # Titel
