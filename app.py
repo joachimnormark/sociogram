@@ -154,19 +154,23 @@ if uploaded_file is not None:
         )
 
     
-    # Kontakter
-    all_names = pd.concat([df[c] for c in choice_cols])
+    # === Kontakter (korrekt tælling) ===
 
-    # Start med at give alle elever n = 1
-    contacts_count = {e: 1 for e in df["elev"]}
+    # Start med at give alle elever n = 1 (ingen peger på)
+    contacts_count = {e: 1 for e in df["elev"].astype(str).str.strip()}
 
-    # Læg derefter valg oveni
-    for name, count in all_names.value_counts().items():
-        name_clean = str(name).strip()
-        if name_clean in contacts_count:
-            contacts_count[name_clean] += count
+    # Læg derefter alle valg oveni
+    all_choices = pd.concat([df[c] for c in choice_cols]).astype(str).str.strip()
+
+    for name, count in all_choices.value_counts().items():
+        if name in contacts_count:
+            contacts_count[name] += count
         else:
-            contacts_count[name_clean] = count
+            contacts_count[name] = count
+
+    # Navneliste til layout
+    names = list(contacts_count.keys())
+
 
 
     # Layout
