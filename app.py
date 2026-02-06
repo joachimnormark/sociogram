@@ -183,7 +183,7 @@ if uploaded_file is not None:
 
 
 
-        ax.text(x, y, elev, ha="center", va="center", fontsize=10)
+       #DOBBELT? ax.text(x, y, elev, ha="center", va="center", fontsize=10)
 
     # === Pile ===
     for start, end in edges:
