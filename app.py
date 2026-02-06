@@ -214,8 +214,7 @@ if uploaded_file is not None:
     ax.set_aspect("equal")
     plt.axis("off")
 
-        # === Farveforklaring ===
-        
+        # === Farveforklaring (øverste højre hjørne) ===
     legend_items = [
         ("Ingen peger på", "black"),
         ("Få valg (1-2)", "red"),
@@ -223,10 +222,11 @@ if uploaded_file is not None:
         ("Mange valg (6+)", "green"),
     ]
 
-    # Startposition i aksens koordinater (1 = højre, 0 = venstre)
-    base_x = 1.02
+    # Placering i aksens koordinater (0–1)
+    base_x = 0.72      # længere ind mod midten
     base_y = 0.95
-    spacing = 0.07  # afstand mellem linjerne
+    spacing = 0.08
+    circle_r = 0.012   # mindre cirkler
 
     for i, (label, color) in enumerate(legend_items):
         y = base_y - i * spacing
@@ -235,11 +235,12 @@ if uploaded_file is not None:
         ax.add_patch(
             Circle(
                 (base_x, y),
-                0.02,
+                circle_r,
                 fill=False,
                 edgecolor=color,
-                linewidth=3,
-                transform=ax.transAxes,   # ⭐ vigtig: relative koordinater
+                linewidth=2.5,
+                transform=ax.transAxes,
+                zorder=999,       # ⭐ altid øverst
                 clip_on=False
             )
         )
@@ -251,9 +252,11 @@ if uploaded_file is not None:
             label,
             va="center",
             fontsize=10,
-            transform=ax.transAxes,      # ⭐ samme koordinatsystem
+            transform=ax.transAxes,
+            zorder=999,          # ⭐ altid øverst
             clip_on=False
         )
+
 
 
 
