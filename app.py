@@ -199,7 +199,7 @@ if uploaded_file is not None:
         ex, ey = ellipse_edge_point(x2, y2, x2, y2, x1, y1, node_width, node_height)
 
         color = "green" if (start, end) in mutual else "gray"
-        lw = 2 if (start, end) in mutual else 1
+        lw = 1 if (start, end) in mutual else 1
 
         ax.add_patch(
             FancyArrowPatch(
