@@ -168,6 +168,14 @@ if uploaded_file is not None:
         else:
             contacts_count[name] = count
 
+    # Sortér efter antal der peger på (mest populære først)
+    names = sorted(
+        contacts_count.keys(),
+        key=lambda name: contacts_count[name],
+        reverse=True
+    )
+
+    
     # Navneliste til layout
     names = list(contacts_count.keys())
 
