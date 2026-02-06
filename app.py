@@ -233,10 +233,13 @@ if uploaded_file is not None:
     # === Farveforklaring (vandret under grafen) ===
     legend_items = [
         ("Ingen peger på", "black"),
-        ("Få valg (1-2)", "red"),
-        ("Nogle valg (3-5)", "orange"),
-        ("Mange valg (6+)", "green"),
+        ("1 peger på", "purple"),
+        ("2 peger på", "darkorange"),
+        ("3 peger på", "goldenrod"),
+        ("4 peger på", "forestgreen"),
+        ("5+ peger på", "royalblue"),
     ]
+
 
     base_x = 0.10
     base_y = -0.08
