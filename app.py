@@ -230,49 +230,55 @@ if uploaded_file is not None:
     ax.set_aspect("equal")
     plt.axis("off")
 
-    # === Farveforklaring (vandret under grafen) ===
-    legend_items = [
-        ("Ingen peger på", "black"),
-        ("1 peger på", "purple"),
-        ("2 peger på", "darkorange"),
-        ("3 peger på", "goldenrod"),
-        ("4 peger på", "forestgreen"),
-        ("5+ peger på", "royalblue"),
-    ]
+    # === Farveforklaring (to rækker under sociogrammet) ===
+legend_items = [
+    ("Ingen peger på", "black"),
+    ("1 peger på", "purple"),
+    ("2 peger på", "darkorange"),
+    ("3 peger på", "goldenrod"),
+    ("4 peger på", "forestgreen"),
+    ("5+ peger på", "royalblue"),
+]
 
+# Layout for to rækker
+items_per_row = 3
+circle_r = 0.015
 
-    base_x = 0.10
-    base_y = -0.08
-    spacing_x = 0.25
-    circle_r = 0.015
+row_spacing = 0.06      # afstand mellem rækker
+base_y = -0.08          # første række
+base_x = 0.10           # venstre start
+spacing_x = 0.28        # vandret afstand mellem elementer
 
-    for i, (label, color) in enumerate(legend_items):
-        x = base_x + i * spacing_x
-        y = base_y
+for i, (label, color) in enumerate(legend_items):
+    row = i // items_per_row
+    col = i % items_per_row
 
-        ax.add_patch(
-            Circle(
-                (x, y),
-                circle_r,
-                fill=False,
-                edgecolor=color,
-                linewidth=2.5,
-                transform=ax.transAxes,
-                zorder=999,
-                clip_on=False
-            )
-        )
+    x = base_x + col * spacing_x
+    y = base_y - row * row_spacing
 
-        ax.text(
-            x + 0.03,
-            y,
-            label,
-            va="center",
-            fontsize=10,
+    ax.add_patch(
+        Circle(
+            (x, y),
+            circle_r,
+            fill=False,
+            edgecolor=color,
+            linewidth=2.5,
             transform=ax.transAxes,
             zorder=999,
             clip_on=False
         )
+    )
+
+    ax.text(
+        x + 0.03,
+        y,
+        label,
+        va="center",
+        fontsize=10,
+        transform=ax.transAxes,
+        zorder=999,
+        clip_on=False
+    )
 
     # Titel
     dato = datetime.now().strftime("%d-%m-%Y")
