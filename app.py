@@ -21,6 +21,41 @@ def read_csv_smart(file, header):
     raise ValueError("Kunne ikke læse CSV-filen.")
 
 
+import numpy as np
+
+def ellipse_edge_point(x0, y0, x1, y1, x2, y2, width, height):
+    """
+    Returnerer punktet hvor linjen fra (x1,y1) til (x2,y2)
+    rammer ellipsen centreret i (x0,y0) med given width/height.
+    """
+    # Flyt koordinater så ellipsens center er (0,0)
+    dx = x2 - x1
+    dy = y2 - y1
+
+    # Parametrisk linje: (x1 + t*dx, y1 + t*dy)
+    # Ellipse ligning: (x/a)^2 + (y/b)^2 = 1
+    a = width / 2
+    b = height / 2
+
+    # Flyt startpunktet til ellipsecenter
+    X1 = x1 - x0
+    Y1 = y1 - y0
+
+    # Løs andengradsligning for t
+    A = (dx*dx)/(a*a) + (dy*dy)/(b*b)
+    B = 2*((X1*dx)/(a*a) + (Y1*dy)/(b*b))
+    C = (X1*X1)/(a*a) + (Y1*Y1)/(b*b) - 1
+
+    # Vi skal bruge den mindste positive t
+    disc = B*B - 4*A*C
+    t = (-B + np.sqrt(disc)) / (2*A)
+
+    # Punktet på ellipsen
+    ex = x1 + t*dx
+    ey = y1 + t*dy
+    return ex, ey
+
+
 # === Layouts ===
 
 def layout_circle(names):
@@ -195,10 +230,27 @@ if uploaded_file is not None:
         if dist == 0:
             continue
 
-        sx = x1 + dx * (R / dist)
-        sy = y1 + dy * (R / dist)
-        ex = x2 - dx * (R / dist)
-        ey = y2 - dy * (R / dist)
+     #   sx = x1 + dx * (R / dist)
+      #  sy = y1 + dy * (R / dist)
+     #   ex = x2 - dx * (R / dist)
+      #  ey = y2 - dy * (R / dist)
+
+        # Beregn ellipse-dimensioner for noderne
+        node_width = R * 2.2
+        node_height = R * 1.2
+
+# Startpunkt: fra start-node mod end-node
+        sx, sy = ellipse_edge_point(
+            x1, y1, x1, y1, x2, y2,
+            node_width, node_height
+        )
+
+# Slutpunkt: fra end-node mod start-node
+        ex, ey = ellipse_edge_point(
+            x2, y2, x2, y2, x1, y1,
+            node_width, node_height
+        )
+
 
         color = "green" if (start, end) in mutual else "black"
         lw = 3 if (start, end) in mutual else 1
