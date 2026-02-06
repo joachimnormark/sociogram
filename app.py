@@ -160,15 +160,19 @@ if uploaded_file is not None:
         x, y = positions[elev]
 
         # HUL cirkel med farvet kant
-        ax.add_patch(
-            Circle(
-                (x, y),
-                R,
-                fill=False,                                   # ingen fyldfarve
-                edgecolor=farve(contacts_count[elev]),        # farvet outline
-                linewidth=3                                   # tykkere streg
+        from matplotlib.patches import Ellipse
+
+    ax.add_patch(
+         Ellipse(
+            (x, y),
+            width=R * 2.2,      # bredere end høj
+            height=R * 1.2,     # lidt højere end før
+            fill=False,
+            edgecolor=farve(contacts_count[elev]),
+            linewidth=3
             )
-        )
+)
+
 
         ax.text(x, y, elev, ha="center", va="center", fontsize=10)
 
