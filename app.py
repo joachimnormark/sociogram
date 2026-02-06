@@ -171,7 +171,7 @@ if uploaded_file is not None:
             edgecolor=farve(contacts_count[elev]),
             linewidth=3
             )
-)
+    )
 
 
         ax.text(x, y, elev, ha="center", va="center", fontsize=10)
