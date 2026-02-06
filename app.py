@@ -178,7 +178,7 @@ if uploaded_file is not None:
             elev,
             ha="center",
             va="center",
-            fontsize=12
+            fontsize=15
         )
 
 
