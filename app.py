@@ -143,12 +143,17 @@ if uploaded_file is not None:
     R = 0.35
 
     def farve(n):
-        if n < 3:
+    # n = antal gange navnet optræder i alle valg + egen række
+    # Hvis n == 1 → ingen har valgt personen
+        if n <= 1:
+            return "black"
+        elif n < 3:
             return "red"
         elif n < 6:
             return "orange"
         else:
             return "green"
+
 
         # === Cirkler ===
     for elev in names:
