@@ -137,6 +137,23 @@ if uploaded_file is not None:
         st.error("Følgende elever peger på sig selv: " + ", ".join(sorted(set(self_ref))))
         st.stop()
 
+        # === Find elever der bliver valgt, men ikke selv vælger nogen ===
+        elevliste = set(df["elev"].astype(str).str.strip().str.lower())
+        valgte = set()
+
+    for c in choice_cols:
+        valgte.update(df[c].astype(str).str.strip().str.lower())
+
+    mistænkelige = valgte - elevliste
+
+    if mistænkelige:
+        fejl_navn = ", ".join(sorted(mistænkelige))
+        st.warning(
+            f"Advarsel: En eller flere peger på {fejl_navn}, men denne/disse har ikke peget på nogle. "
+            "Tjek om der er stavefejl eller manglende elev i første kolonne."
+        )
+
+    
     # Kontakter
     all_names = pd.concat([df["elev"]] + [df[c] for c in choice_cols])
     contacts_count = all_names.value_counts().to_dict()
@@ -217,6 +234,24 @@ if uploaded_file is not None:
             )
         )
 
+        # === Marker mistænkelige elever med stor rød cirkel ===
+    for elev in names:
+        if elev.lower() in mistænkelige:
+            x, y = positions[elev]
+            ax.add_patch(
+                Ellipse(
+                    (x, y),
+                    width=node_width * 1.6,   # større end normal node
+                    height=node_height * 1.6,
+                    fill=False,
+                    edgecolor="red",
+                    linewidth=4,
+                    linestyle="--",
+                    zorder=50
+                )
+            )
+
+    
     # === Faste xlim/ylim ===
     if layout_valg == "Cirkel-layout":
         ax.set_xlim(-8, 8)
