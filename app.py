@@ -231,30 +231,30 @@ if uploaded_file is not None:
     plt.axis("off")
 
     # === Farveforklaring (to rækker under sociogrammet) ===
-legend_items = [
-    ("Ingen peger på", "black"),
-    ("1 peger på", "purple"),
-    ("2 peger på", "darkorange"),
-    ("3 peger på", "goldenrod"),
-    ("4 peger på", "forestgreen"),
-    ("5+ peger på", "royalblue"),
-]
+    legend_items = [
+        ("Ingen peger på", "black"),
+        ("1 peger på", "purple"),
+        ("2 peger på", "darkorange"),
+        ("3 peger på", "goldenrod"),
+        ("4 peger på", "forestgreen"),
+        ("5+ peger på", "royalblue"),
+    ]
 
 # Layout for to rækker
-items_per_row = 3
-circle_r = 0.015
+    items_per_row = 3
+    circle_r = 0.015
 
-row_spacing = 0.06      # afstand mellem rækker
-base_y = -0.08          # første række
-base_x = 0.10           # venstre start
-spacing_x = 0.28        # vandret afstand mellem elementer
+    row_spacing = 0.06      # afstand mellem rækker
+    base_y = -0.08          # første række
+    base_x = 0.10           # venstre start
+    spacing_x = 0.28        # vandret afstand mellem elementer
 
-for i, (label, color) in enumerate(legend_items):
-    row = i // items_per_row
-    col = i % items_per_row
+    for i, (label, color) in enumerate(legend_items):
+        row = i // items_per_row
+        col = i % items_per_row
 
-    x = base_x + col * spacing_x
-    y = base_y - row * row_spacing
+        x = base_x + col * spacing_x
+        y = base_y - row * row_spacing
 
     ax.add_patch(
         Circle(
