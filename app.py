@@ -214,7 +214,7 @@ if uploaded_file is not None:
     ax.set_aspect("equal")
     plt.axis("off")
 
-        # === Farveforklaring (øverste højre hjørne) ===
+           # === Farveforklaring (vandret under sociogrammet) ===
     legend_items = [
         ("Ingen peger på", "black"),
         ("Få valg (1-2)", "red"),
@@ -222,40 +222,42 @@ if uploaded_file is not None:
         ("Mange valg (6+)", "green"),
     ]
 
-    # Placering i aksens koordinater (0–1)
-    base_x = 0.72      # længere ind mod midten
-    base_y = 0.95
-    spacing = 0.08
-    circle_r = 0.012   # mindre cirkler
+    # Startposition i aksens koordinater
+    base_x = 0.10      # venstre start
+    base_y = -0.08     # under grafen
+    spacing_x = 0.25   # vandret afstand mellem elementer
+    circle_r = 0.015   # lille cirkel
 
     for i, (label, color) in enumerate(legend_items):
-        y = base_y - i * spacing
+        x = base_x + i * spacing_x
+        y = base_y
 
         # Lille hul cirkel
         ax.add_patch(
             Circle(
-                (base_x, y),
+                (x, y),
                 circle_r,
                 fill=False,
                 edgecolor=color,
                 linewidth=2.5,
                 transform=ax.transAxes,
-                zorder=999,       # ⭐ altid øverst
+                zorder=999,
                 clip_on=False
             )
         )
 
         # Tekst
         ax.text(
-            base_x + 0.04,
+            x + 0.03,
             y,
             label,
             va="center",
             fontsize=10,
             transform=ax.transAxes,
-            zorder=999,          # ⭐ altid øverst
+            zorder=999,
             clip_on=False
         )
+
 
 
 
