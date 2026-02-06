@@ -164,7 +164,7 @@ if uploaded_file is not None:
         if n <= 1:
             return "black"
         elif n < 2:
-            return "firebrick"
+            return "purple"
         elif n < 3:
             return "darkorange"
         elif n < 4:
