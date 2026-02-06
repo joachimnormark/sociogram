@@ -161,18 +161,19 @@ if uploaded_file is not None:
     node_height = R * 2.4
 
     def farve(n):
-        if n <= 1:
-            return "black"
-        elif n < 2:
-            return "purple"
-        elif n < 3:
-            return "darkorange"
-        elif n < 4:
-            return "goldenrod"
-        elif n < 5:
-            return "forestgreen" 
-        else:
-            return "royalblue"
+    if n == 1:
+        return "black"          # ingen peger på
+    elif n == 2:
+        return "purple"         # 1 peger på
+    elif n == 3:
+        return "darkorange"     # 2 peger på
+    elif n == 4:
+        return "goldenrod"      # 3 peger på
+    elif n == 5:
+        return "forestgreen"    # 4 peger på
+    else:
+        return "royalblue"      # 5+ peger på
+
 
     # === Ovale noder ===
     for elev in names:
