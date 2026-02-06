@@ -170,7 +170,12 @@ if uploaded_file is not None:
     # === Tegn figur ===
     fig, ax = plt.subplots(figsize=(10, 10))
 
-    R = 0.35  # "radius" til at klippe pile ved kanten
+    # Ellipse-størrelser
+    ellipse_width = 1.47   # svarer til R*4.2 når R=0.35
+    ellipse_height = 1.12  # svarer til R*3.2 når R=0.35
+
+    a = ellipse_width / 2   # halv bredde
+    b = ellipse_height / 2  # halv højde
 
     def farve(n_indgaaende):
         if n_indgaaende == 0:
@@ -194,8 +199,8 @@ if uploaded_file is not None:
         ax.add_patch(
             Ellipse(
                 (x, y),
-                width=R * 4.2,
-                height=R * 3.2,
+                width=ellipse_width,
+                height=ellipse_height,
                 fill=False,
                 edgecolor=farve(n_in),
                 linewidth=2
@@ -218,8 +223,8 @@ if uploaded_file is not None:
             ax.add_patch(
                 Ellipse(
                     (x, y),
-                    width=R * 4.2 * 1.6,
-                    height=R * 3.2 * 1.6,
+                    width=ellipse_width * 1.6,
+                    height=ellipse_height * 1.6,
                     fill=False,
                     edgecolor="red",
                     linewidth=4,
@@ -228,7 +233,7 @@ if uploaded_file is not None:
                 )
             )
 
-    # === Pile (justeret så de stopper præcist ved kanten + grøn tykkelse = 2) ===
+    # === Pile med korrekt ellipse-intersection ===
     for start, end in edges:
         if start not in positions or end not in positions:
             continue
@@ -241,14 +246,18 @@ if uploaded_file is not None:
         if dist == 0:
             continue
 
-        # Start og slutpunkt justeret til ellipse-kanten
-        sx = x1 + dx * (R / dist)
-        sy = y1 + dy * (R / dist)
-        ex = x2 - dx * (R / dist)
-        ey = y2 - dy * (R / dist)
+        ux, uy = dx / dist, dy / dist
+
+        # Skæringspunkt med ellipse-kant (matematisk korrekt)
+        t = 1 / math.sqrt((ux**2)/(a**2) + (uy**2)/(b**2))
+
+        sx = x1 + ux * t
+        sy = y1 + uy * t
+        ex = x2 - ux * t
+        ey = y2 - uy * t
 
         color = "green" if (start, end) in mutual else "black"
-        lw = 2 if (start, end) in mutual else 1   # <-- ændret fra 3 til 2
+        lw = 1 if (start, end) in mutual else 1  # grøn = 1
 
         ax.add_patch(
             FancyArrowPatch(
