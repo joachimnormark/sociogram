@@ -256,29 +256,29 @@ if uploaded_file is not None:
         x = base_x + col * spacing_x
         y = base_y - row * row_spacing
 
-    ax.add_patch(
-        Circle(
-            (x, y),
-            circle_r,
-            fill=False,
-            edgecolor=color,
-            linewidth=2.5,
+        ax.add_patch(
+            Circle(
+                (x, y),
+                circle_r,
+                fill=False,
+                edgecolor=color,
+                linewidth=2.5,
+                transform=ax.transAxes,
+                zorder=999,
+                clip_on=False
+            )
+        )
+
+        ax.text(
+            x + 0.03,
+            y,
+            label,
+            va="center",
+            fontsize=10,
             transform=ax.transAxes,
             zorder=999,
             clip_on=False
         )
-    )
-
-    ax.text(
-        x + 0.03,
-        y,
-        label,
-        va="center",
-        fontsize=10,
-        transform=ax.transAxes,
-        zorder=999,
-        clip_on=False
-    )
 
     # Titel
     dato = datetime.now().strftime("%d-%m-%Y")
