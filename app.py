@@ -164,11 +164,11 @@ if uploaded_file is not None:
         ax.add_patch(
             Ellipse(
                 (x, y),
-                width=R * 3.2,      # bredere
-                height=R * 1.2,     # lidt højere
+                width=R * 4.2,      # bredere
+                height=R * 3.2,     # lidt højere
                 fill=False,
                 edgecolor=farve(contacts_count[elev]),
-                linewidth=3
+                linewidth=2
             )
         )
 
@@ -178,7 +178,7 @@ if uploaded_file is not None:
             elev,
             ha="center",
             va="center",
-            fontsize=10
+            fontsize=12
         )
 
 
