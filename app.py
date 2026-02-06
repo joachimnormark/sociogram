@@ -155,9 +155,19 @@ if uploaded_file is not None:
 
     
     # Kontakter
-    all_names = pd.concat([df["elev"]] + [df[c] for c in choice_cols])
-    contacts_count = all_names.value_counts().to_dict()
-    names = list(contacts_count.keys())
+    all_names = pd.concat([df[c] for c in choice_cols])
+
+    # Start med at give alle elever n = 1
+    contacts_count = {e: 1 for e in df["elev"]}
+
+    # Læg derefter valg oveni
+    for name, count in all_names.value_counts().items():
+        name_clean = str(name).strip()
+        if name_clean in contacts_count:
+            contacts_count[name_clean] += count
+        else:
+            contacts_count[name_clean] = count
+
 
     # Layout
     positions = layout_circle(names) if layout_valg == "Cirkel-layout" else layout_grid(names)
