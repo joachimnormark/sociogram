@@ -214,6 +214,36 @@ if uploaded_file is not None:
     ax.set_aspect("equal")
     plt.axis("off")
 
+        # === Farveforklaring ===
+    legend_x = 1.05   # lidt udenfor højre kant
+    legend_y = 0.95
+
+    legend_items = [
+        ("Ingen peger på", "black"),
+        ("Få valg (1-2)", "red"),
+        ("Nogle valg (3-5)", "orange"),
+        ("Mange valg (6+)", "green"),
+    ]
+
+    for i, (label, color) in enumerate(legend_items):
+        y = legend_y - i * 0.06
+        ax.add_patch(
+            Circle(
+                (legend_x, y),
+                0.03,
+                fill=False,
+                edgecolor=color,
+                linewidth=3
+            )
+        )
+        ax.text(
+            legend_x + 0.05,
+            y,
+            label,
+            va="center",
+            fontsize=10
+        )
+
 
     # Titel
     dato = datetime.now().strftime("%d-%m-%Y")
