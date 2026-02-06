@@ -163,12 +163,16 @@ if uploaded_file is not None:
     def farve(n):
         if n <= 1:
             return "black"
+        elif n < 2:
+            return "firebrick"
         elif n < 3:
-            return "red"
-        elif n < 6:
-            return "orange"
+            return "darkorange"
+        elif n < 4:
+            return "goldenrod"
+        elif n < 5:
+            return "forestgreen" 
         else:
-            return "green"
+            return "royalblue"
 
     # === Ovale noder ===
     for elev in names:
