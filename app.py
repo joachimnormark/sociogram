@@ -138,8 +138,8 @@ if uploaded_file is not None:
         st.stop()
 
         # === Find elever der bliver valgt, men ikke selv vælger nogen ===
-        elevliste = set(df["elev"].astype(str).str.strip().str.lower())
-        valgte = set()
+    elevliste = set(df["elev"].astype(str).str.strip().str.lower())
+    valgte = set()
 
     for c in choice_cols:
         valgte.update(df[c].astype(str).str.strip().str.lower())
