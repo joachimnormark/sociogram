@@ -1,16 +1,18 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
-from matplotlib.patches import Circle, FancyArrowPatch
+from matplotlib.patches import Ellipse, Circle, FancyArrowPatch
 import math
 from io import BytesIO
 import os
 from datetime import datetime
 from PIL import Image
+import numpy as np
 
 Image.MAX_IMAGE_PIXELS = None
 
 
+# === CSV-læser ===
 def read_csv_smart(file, header):
     for sep in [";", ",", "\t"]:
         file.seek(0)
@@ -21,43 +23,7 @@ def read_csv_smart(file, header):
     raise ValueError("Kunne ikke læse CSV-filen.")
 
 
-import numpy as np
-
-def ellipse_edge_point(x0, y0, x1, y1, x2, y2, width, height):
-    """
-    Returnerer punktet hvor linjen fra (x1,y1) til (x2,y2)
-    rammer ellipsen centreret i (x0,y0) med given width/height.
-    """
-    # Flyt koordinater så ellipsens center er (0,0)
-    dx = x2 - x1
-    dy = y2 - y1
-
-    # Parametrisk linje: (x1 + t*dx, y1 + t*dy)
-    # Ellipse ligning: (x/a)^2 + (y/b)^2 = 1
-    a = width / 2
-    b = height / 2
-
-    # Flyt startpunktet til ellipsecenter
-    X1 = x1 - x0
-    Y1 = y1 - y0
-
-    # Løs andengradsligning for t
-    A = (dx*dx)/(a*a) + (dy*dy)/(b*b)
-    B = 2*((X1*dx)/(a*a) + (Y1*dy)/(b*b))
-    C = (X1*X1)/(a*a) + (Y1*Y1)/(b*b) - 1
-
-    # Vi skal bruge den mindste positive t
-    disc = B*B - 4*A*C
-    t = (-B + np.sqrt(disc)) / (2*A)
-
-    # Punktet på ellipsen
-    ex = x1 + t*dx
-    ey = y1 + t*dy
-    return ex, ey
-
-
 # === Layouts ===
-
 def layout_circle(names):
     n = len(names)
     radius = 7
@@ -80,14 +46,37 @@ def layout_grid(names):
     return positions
 
 
-# === Streamlit UI ===
+# === Beregn præcis skæringspunkt mellem pil og ellipse ===
+def ellipse_edge_point(cx, cy, x1, y1, x2, y2, width, height):
+    """
+    Finder punktet hvor linjen fra (x1,y1) mod (x2,y2)
+    rammer ellipsen centreret i (cx,cy) med given width/height.
+    """
+    a = width / 2
+    b = height / 2
 
+    X1 = x1 - cx
+    Y1 = y1 - cy
+    dx = x2 - x1
+    dy = y2 - y1
+
+    A = (dx*dx)/(a*a) + (dy*dy)/(b*b)
+    B = 2*((X1*dx)/(a*a) + (Y1*dy)/(b*b))
+    C = (X1*X1)/(a*a) + (Y1*Y1)/(b*b) - 1
+
+    disc = B*B - 4*A*C
+    t = (-B + np.sqrt(disc)) / (2*A)
+
+    ex = x1 + t*dx
+    ey = y1 + t*dy
+    return ex, ey
+
+
+# === Streamlit UI ===
 st.title("Sociogram-generator")
 
 klasse_navn = st.text_input("Indtast klassens navn (fx 7.A):")
-
 layout_valg = st.selectbox("Vælg layout", ["Cirkel-layout", "Grid-layout"])
-
 uploaded_file = st.file_uploader("Vælg fil", type=["csv", "xlsx", "xls"])
 
 if uploaded_file is not None:
@@ -112,12 +101,11 @@ if uploaded_file is not None:
         df.columns = ["elev"] + [str(i) for i in range(1, df.shape[1])]
         df.columns = df.columns.str.lower()
 
-    all_cols = list(df.columns)
-    if "elev" not in all_cols:
+    if "elev" not in df.columns:
         st.error("Kunne ikke finde en kolonne med elevnavne.")
         st.stop()
 
-    choice_cols = [c for c in all_cols if c != "elev"]
+    choice_cols = [c for c in df.columns if c != "elev"]
     num_choices = len(choice_cols)
 
     if num_choices < 2 or num_choices > 4:
@@ -155,10 +143,7 @@ if uploaded_file is not None:
     names = list(contacts_count.keys())
 
     # Layout
-    if layout_valg == "Cirkel-layout":
-        positions = layout_circle(names)
-    else:
-        positions = layout_grid(names)
+    positions = layout_circle(names) if layout_valg == "Cirkel-layout" else layout_grid(names)
 
     # Edges
     edges = []
@@ -166,20 +151,16 @@ if uploaded_file is not None:
         for c in choice_cols:
             edges.append((row["elev"], row[c]))
 
-    mutual = set()
-    for a, b in edges:
-        if (b, a) in edges:
-            mutual.add((a, b))
-            mutual.add((b, a))
+    mutual = {(a, b) for a, b in edges if (b, a) in edges}
 
     # === Tegn figur ===
     fig, ax = plt.subplots(figsize=(10, 10))
 
     R = 0.35
+    node_width = R * 4.0
+    node_height = R * 2.4
 
     def farve(n):
-    # n = antal gange navnet optræder i alle valg + egen række
-    # Hvis n == 1 → ingen har valgt personen
         if n <= 1:
             return "black"
         elif n < 3:
@@ -189,68 +170,33 @@ if uploaded_file is not None:
         else:
             return "green"
 
-
-            # === Cirkler (ovale noder) ===
-    from matplotlib.patches import Ellipse
-
+    # === Ovale noder ===
     for elev in names:
         x, y = positions[elev]
 
         ax.add_patch(
             Ellipse(
                 (x, y),
-                width=R * 4.2,      # bredere
-                height=R * 3.2,     # lidt højere
+                width=node_width,
+                height=node_height,
                 fill=False,
                 edgecolor=farve(contacts_count[elev]),
-                linewidth=2
+                linewidth=2.5
             )
         )
 
-        ax.text(
-            x,
-            y,
-            elev,
-            ha="center",
-            va="center",
-            fontsize=15
-        )
-
-
-
-       #DOBBELT? ax.text(x, y, elev, ha="center", va="center", fontsize=10)
+        ax.text(x, y, elev, ha="center", va="center", fontsize=14)
 
     # === Pile ===
     for start, end in edges:
         x1, y1 = positions[start]
         x2, y2 = positions[end]
 
-        dx, dy = x2 - x1, y2 - y1
-        dist = math.sqrt(dx**2 + dy**2)
-        if dist == 0:
-            continue
+        # Startpunkt på start-ellipse
+        sx, sy = ellipse_edge_point(x1, y1, x1, y1, x2, y2, node_width, node_height)
 
-     #   sx = x1 + dx * (R / dist)
-      #  sy = y1 + dy * (R / dist)
-     #   ex = x2 - dx * (R / dist)
-      #  ey = y2 - dy * (R / dist)
-
-        # Beregn ellipse-dimensioner for noderne
-        node_width = R * 2.2
-        node_height = R * 1.2
-
-# Startpunkt: fra start-node mod end-node
-        sx, sy = ellipse_edge_point(
-            x1, y1, x1, y1, x2, y2,
-            node_width, node_height
-        )
-
-# Slutpunkt: fra end-node mod start-node
-        ex, ey = ellipse_edge_point(
-            x2, y2, x2, y2, x1, y1,
-            node_width, node_height
-        )
-
+        # Slutpunkt på slut-ellipse
+        ex, ey = ellipse_edge_point(x2, y2, x2, y2, x1, y1, node_width, node_height)
 
         color = "green" if (start, end) in mutual else "black"
         lw = 3 if (start, end) in mutual else 1
@@ -279,7 +225,7 @@ if uploaded_file is not None:
     ax.set_aspect("equal")
     plt.axis("off")
 
-           # === Farveforklaring (vandret under sociogrammet) ===
+    # === Farveforklaring (vandret under grafen) ===
     legend_items = [
         ("Ingen peger på", "black"),
         ("Få valg (1-2)", "red"),
@@ -287,17 +233,15 @@ if uploaded_file is not None:
         ("Mange valg (6+)", "green"),
     ]
 
-    # Startposition i aksens koordinater
-    base_x = 0.10      # venstre start
-    base_y = -0.08     # under grafen
-    spacing_x = 0.25   # vandret afstand mellem elementer
-    circle_r = 0.015   # lille cirkel
+    base_x = 0.10
+    base_y = -0.08
+    spacing_x = 0.25
+    circle_r = 0.015
 
     for i, (label, color) in enumerate(legend_items):
         x = base_x + i * spacing_x
         y = base_y
 
-        # Lille hul cirkel
         ax.add_patch(
             Circle(
                 (x, y),
@@ -311,7 +255,6 @@ if uploaded_file is not None:
             )
         )
 
-        # Tekst
         ax.text(
             x + 0.03,
             y,
@@ -322,10 +265,6 @@ if uploaded_file is not None:
             zorder=999,
             clip_on=False
         )
-
-
-
-
 
     # Titel
     dato = datetime.now().strftime("%d-%m-%Y")
