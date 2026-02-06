@@ -245,7 +245,7 @@ if uploaded_file is not None:
     circle_r = 0.015
 
     row_spacing = 0.06      # afstand mellem rækker
-    base_y = -0.08          # første række
+    base_y = -0.02          # første række
     base_x = 0.10           # venstre start
     spacing_x = 0.28        # vandret afstand mellem elementer
 
