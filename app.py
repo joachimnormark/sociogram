@@ -173,7 +173,6 @@ if uploaded_file is not None:
     R = 0.35  # "radius" til at klippe pile ved kanten
 
     def farve(n_indgaaende):
-        # n_indgaaende = antal der peger på personen
         if n_indgaaende == 0:
             return "black"
         elif n_indgaaende == 1:
@@ -229,7 +228,7 @@ if uploaded_file is not None:
                 )
             )
 
-    # Pile
+    # === Pile (justeret så de stopper præcist ved kanten + grøn tykkelse = 2) ===
     for start, end in edges:
         if start not in positions or end not in positions:
             continue
@@ -242,13 +241,14 @@ if uploaded_file is not None:
         if dist == 0:
             continue
 
+        # Start og slutpunkt justeret til ellipse-kanten
         sx = x1 + dx * (R / dist)
         sy = y1 + dy * (R / dist)
         ex = x2 - dx * (R / dist)
         ey = y2 - dy * (R / dist)
 
         color = "green" if (start, end) in mutual else "black"
-        lw = 3 if (start, end) in mutual else 1
+        lw = 2 if (start, end) in mutual else 1   # <-- ændret fra 3 til 2
 
         ax.add_patch(
             FancyArrowPatch(
@@ -274,7 +274,7 @@ if uploaded_file is not None:
     ax.set_aspect("equal")
     plt.axis("off")
 
-    # Farveforklaring (to rækker under sociogrammet)
+    # Farveforklaring (to rækker)
     legend_items = [
         ("Ingen peger på", "black"),
         ("1 peger på", "purple"),
