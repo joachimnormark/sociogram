@@ -155,23 +155,32 @@ if uploaded_file is not None:
             return "green"
 
 
-        # === Cirkler ===
+            # === Cirkler (ovale noder) ===
+    from matplotlib.patches import Ellipse
+
     for elev in names:
         x, y = positions[elev]
 
-        # HUL cirkel med farvet kant
-        from matplotlib.patches import Ellipse
+        ax.add_patch(
+            Ellipse(
+                (x, y),
+                width=R * 2.2,      # bredere
+                height=R * 1.2,     # lidt højere
+                fill=False,
+                edgecolor=farve(contacts_count[elev]),
+                linewidth=3
+            )
+        )
 
-    ax.add_patch(
-         Ellipse(
-            (x, y),
-            width=R * 2.2,      # bredere end høj
-            height=R * 1.2,     # lidt højere end før
-            fill=False,
-            edgecolor=farve(contacts_count[elev]),
-            linewidth=3
-         )
-     )
+        ax.text(
+            x,
+            y,
+            elev,
+            ha="center",
+            va="center",
+            fontsize=10
+        )
+
 
 
         ax.text(x, y, elev, ha="center", va="center", fontsize=10)
